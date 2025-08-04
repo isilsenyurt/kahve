@@ -1,0 +1,119 @@
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+
+import { db } from "./firebaseConfig";
+import { collection, addDoc, onSnapshot } from "firebase/firestore";
+
+const kahveTipleri = [
+  "Türk kahvesi",
+  "Kapsül - Espresso",
+  "Kapsül - Café Crème",
+  "Kapsül - Filtre",
+  "Filtre kahve",
+  "Cold Brew",
+  "Granül kahve"
+];
+
+const KahveTercihForm = () => {
+  const [isim, setIsim] = useState("");
+  const [kahveTipi, setKahveTipi] = useState("");
+  const [sicaklik, setSicaklik] = useState("");
+  const [sut, setSut] = useState("");
+  const [sertlik, setSertlik] = useState("");
+
+  const handleSubmit = async () => {
+    if (!isim || !kahveTipi || !sicaklik || !sut || !sertlik) return;
+
+    try {
+      await addDoc(collection(db, "tercihler"), {
+        isim,
+        kahveTipi,
+        sicaklik,
+        sut,
+        sertlik,
+        timestamp: new Date()
+      });
+      setIsim("");
+      setKahveTipi("");
+      setSicaklik("");
+      setSut("");
+      setSertlik("");
+    } catch (err) {
+      console.error("Veri eklenemedi:", err);
+    }
+  };
+
+  return (
+    <Card className="p-4 max-w-md mx-auto mt-4">
+      <CardContent className="flex flex-col gap-4">
+        <Input
+          placeholder="İsminiz"
+          value={isim}
+          onChange={(e) => setIsim(e.target.value)}
+        />
+
+        <Select value={kahveTipi} onValueChange={setKahveTipi}>
+          {kahveTipleri.map((tip) => (
+            <SelectItem key={tip} value={tip}>{tip}</SelectItem>
+          ))}
+        </Select>
+
+        <Select value={sicaklik} onValueChange={setSicaklik}>
+          <SelectItem value="Sıcak">Sıcak</SelectItem>
+          <SelectItem value="Soğuk">Soğuk</SelectItem>
+        </Select>
+
+        <Select value={sut} onValueChange={setSut}>
+          <SelectItem value="Sütlü">Sütlü</SelectItem>
+          <SelectItem value="Sütsüz">Sütsüz</SelectItem>
+        </Select>
+
+        <Select value={sertlik} onValueChange={setSertlik}>
+          <SelectItem value="Tatlı">Tatlı</SelectItem>
+          <SelectItem value="Sert">Sert</SelectItem>
+        </Select>
+
+        <Button onClick={handleSubmit}>Kaydet</Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+const KahveTercihListesi = ({ tercihler }) => (
+  <div className="grid gap-4 p-4">
+    {tercihler.map((tercih, index) => (
+      <Card key={index} className="shadow p-4">
+        <CardContent>
+          <p className="font-bold">{tercih.isim}</p>
+          <p>{tercih.kahveTipi}</p>
+          <p>{tercih.sicaklik}, {tercih.sut}, {tercih.sertlik}</p>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+export default function App() {
+  const [tercihler, setTercihler] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(coll
+    ection(db, "tercihler"), (snapshot) => {
+      const gelenVeriler = snapshot.docs.map(doc => doc.data());
+      setTercihler(gelenVeriler);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <h1 className="text-2xl font-bold text-center py-6">Kahve Tercih Uygulaması</h1>
+      <KahveTercihForm />
+      <KahveTercihListesi tercihler={tercihler} />
+    </div>
+  );
+}
